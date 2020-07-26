@@ -1,5 +1,7 @@
 //import 'dart:math';
 
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 
@@ -18,7 +20,7 @@ class CircularPercentIndicator extends StatefulWidget {
 
   ///Width of the progress bar of the circle
   final double lineWidth;
-  
+
   ///Width of the unfilled background of the progress bar
   final double backgroundWidth;
 
@@ -52,6 +54,9 @@ class CircularPercentIndicator extends StatefulWidget {
   ///The kind of finish to place on the end of lines drawn, values supported: butt, round, square
   final CircularStrokeCap circularStrokeCap;
 
+  //The gap to leave between the progress bar and background.
+  final double gap;
+
   ///the angle which the circle will start the progress (in degrees, eg: 0.0, 45.0, 90.0)
   final double startAngle;
 
@@ -84,12 +89,14 @@ class CircularPercentIndicator extends StatefulWidget {
       {Key key,
       this.percent = 0.0,
       this.lineWidth = 5.0,
+      this.gap = 0.0,
       this.startAngle = 0.0,
       @required this.radius,
       this.fillColor = Colors.transparent,
       this.backgroundColor = const Color(0xFFB8C7CB),
-      Color progressColor, 
-      this.backgroundWidth = -1, //negative values ignored, replaced with lineWidth
+      Color progressColor,
+      this.backgroundWidth =
+          -1, //negative values ignored, replaced with lineWidth
       this.linearGradient,
       this.animation = false,
       this.animationDuration = 500,
@@ -107,11 +114,13 @@ class CircularPercentIndicator extends StatefulWidget {
       this.restartAnimation = false})
       : super(key: key) {
     if (linearGradient != null && progressColor != null) {
-      throw ArgumentError('Cannot provide both linearGradient and progressColor');
+      throw ArgumentError(
+          'Cannot provide both linearGradient and progressColor');
     }
     _progressColor = progressColor ?? Colors.red;
 
     assert(startAngle >= 0.0);
+    assert(gap >= 0.0);
     assert(curve != null);
     if (percent < 0.0 || percent > 1.0) {
       throw Exception("Percent value must be a double between 0.0 and 1.0");
@@ -123,7 +132,8 @@ class CircularPercentIndicator extends StatefulWidget {
   }
 
   @override
-  _CircularPercentIndicatorState createState() => _CircularPercentIndicatorState();
+  _CircularPercentIndicatorState createState() =>
+      _CircularPercentIndicatorState();
 }
 
 class _CircularPercentIndicatorState extends State<CircularPercentIndicator>
@@ -143,8 +153,9 @@ class _CircularPercentIndicatorState extends State<CircularPercentIndicator>
   @override
   void initState() {
     if (widget.animation) {
-      _animationController =
-          AnimationController(vsync: this, duration: Duration(milliseconds: widget.animationDuration));
+      _animationController = AnimationController(
+          vsync: this,
+          duration: Duration(milliseconds: widget.animationDuration));
       _animation = Tween(begin: 0.0, end: widget.percent).animate(
         CurvedAnimation(parent: _animationController, curve: widget.curve),
       )..addListener(() {
@@ -165,10 +176,15 @@ class _CircularPercentIndicatorState extends State<CircularPercentIndicator>
   @override
   void didUpdateWidget(CircularPercentIndicator oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.percent != widget.percent || oldWidget.startAngle != widget.startAngle) {
+    if (oldWidget.percent != widget.percent ||
+        oldWidget.startAngle != widget.startAngle) {
       if (_animationController != null) {
-        _animationController.duration = Duration(milliseconds: widget.animationDuration);
-        _animation = Tween(begin: widget.animateFromLastPercent ? oldWidget.percent : 0.0, end: widget.percent).animate(
+        _animationController.duration =
+            Duration(milliseconds: widget.animationDuration);
+        _animation = Tween(
+                begin: widget.animateFromLastPercent ? oldWidget.percent : 0.0,
+                end: widget.percent)
+            .animate(
           CurvedAnimation(parent: _animationController, curve: widget.curve),
         );
         _animationController.forward(from: 0.0);
@@ -202,16 +218,20 @@ class _CircularPercentIndicatorState extends State<CircularPercentIndicator>
               startAngle: widget.startAngle,
               circularStrokeCap: widget.circularStrokeCap,
               radius: (widget.radius / 2) - widget.lineWidth / 2,
+              gap: widget.gap,
               lineWidth: widget.lineWidth,
               backgroundWidth: //negative values ignored, replaced with lineWidth
-                widget.backgroundWidth >= 0.0?
-                  (widget.backgroundWidth): widget.lineWidth,
+                  widget.backgroundWidth >= 0.0
+                      ? (widget.backgroundWidth)
+                      : widget.lineWidth,
               arcBackgroundColor: widget.arcBackgroundColor,
               arcType: widget.arcType,
               reverse: widget.reverse,
               linearGradient: widget.linearGradient,
               maskFilter: widget.maskFilter),
-          child: (widget.center != null) ? Center(child: widget.center) : Container(),
+          child: (widget.center != null)
+              ? Center(child: widget.center)
+              : Container(),
         )));
 
     if (widget.footer != null) {
@@ -241,6 +261,7 @@ class CirclePainter extends CustomPainter {
   final double backgroundWidth;
   final double progress;
   final double radius;
+  final double gap;
   final Color progressColor;
   final Color backgroundColor;
   final CircularStrokeCap circularStrokeCap;
@@ -255,6 +276,7 @@ class CirclePainter extends CustomPainter {
       {this.lineWidth,
       this.backgroundWidth,
       this.progress,
+      this.gap,
       @required this.radius,
       this.progressColor,
       this.backgroundColor,
@@ -296,6 +318,7 @@ class CirclePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    canvas.saveLayer(Offset.zero & size, Paint());
     final center = Offset(size.width / 2, size.height / 2);
     canvas.drawCircle(center, radius, _paintBackground);
 
@@ -346,10 +369,69 @@ class CirclePainter extends CustomPainter {
         _paintBackgroundStartAngle,
       );
     }
+    // canvas.saveLayer(Rect.fromCircle(center: center, radius: radius),
+    //     _paintBackground..blendMode);
 
     if (reverse) {
-      final start = radians(360 * startAngleFixedMargin - 90.0 + fixedStartAngle);
+      final start =
+          radians(360 * startAngleFixedMargin - 90.0 + fixedStartAngle);
       final end = radians(-progress * startAngleFixedMargin);
+      final startGap =
+          radians(360 * startAngleFixedMargin - 90.0 + gap + fixedStartAngle);
+      final endGap = radians(-(progress + gap * 2) * startAngleFixedMargin);
+      Path path = Path();
+      path.addArc(
+          Rect.fromCircle(
+            center: center,
+            radius: radius,
+          ),
+          start,
+          end);
+
+      PathMetrics pm = path.computeMetrics();
+
+      for (PathMetric pathMetric in pm) {
+        Path extractPath = pathMetric.extractPath(0.0, pathMetric.length);
+        // extractPath
+        //     .computeMetrics()
+        //     .
+        Offset offset =
+            pathMetric.getTangentForOffset(pathMetric.length).position;
+        Path path = new Path();
+        path.addOval(Rect.fromCircle(center: offset, radius: 15));
+        canvas.drawPath(
+            path,
+            Paint()
+              ..blendMode = BlendMode.clear
+              ..style = PaintingStyle.fill
+              ..color = Colors.black);
+      }
+      // path.arcTo(rect, startGap, endGap, true);
+
+      // print(end);
+      // path.close();
+      // canvas.drawPath(
+      //     path,
+      //     new Paint()
+      //       ..color = Colors.red
+      //       ..style = PaintingStyle.stroke
+      //       ..strokeWidth = lineWidth
+      //       ..strokeCap = _paintLine.strokeCap);
+      // canvas.drawArc(
+      //     Rect.fromCircle(
+      //       center: center,
+      //       radius: radius,
+      //     ),
+      //     startGap,
+      //     endGap,
+      //     false,
+      //     new Paint()
+      //       ..color = Colors.red
+      //       ..blendMode = BlendMode.clear
+      //       ..style = PaintingStyle.stroke
+      //       ..strokeWidth = lineWidth
+      //       ..strokeCap = _paintLine.strokeCap);
+
       canvas.drawArc(
         Rect.fromCircle(
           center: center,
@@ -363,6 +445,36 @@ class CirclePainter extends CustomPainter {
     } else {
       final start = radians(-90.0 + fixedStartAngle);
       final end = radians(progress * startAngleFixedMargin);
+      final startGap = radians(-90.0 - gap + fixedStartAngle);
+      final endGap = radians((progress + gap * 2) * startAngleFixedMargin);
+
+      canvas.drawArc(
+          Rect.fromCircle(
+            center: center,
+            radius: radius,
+          ),
+          startGap,
+          endGap,
+          false,
+          new Paint()
+            ..color = Colors.red
+            ..blendMode = BlendMode.clear
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = lineWidth
+            ..strokeCap = _paintLine.strokeCap);
+
+      // canvas.saveLayer(
+      //     Rect.fromCircle(
+      //       center: center,
+      //       radius: radius,
+      //     ),
+      //     new Paint()
+      //       ..color = Colors.red
+      //       ..blendMode = BlendMode.darken
+      //       ..style = PaintingStyle.stroke
+      //       ..strokeWidth = lineWidth
+      //       ..strokeCap = _paintLine.strokeCap);
+
       canvas.drawArc(
         Rect.fromCircle(
           center: center,
@@ -374,6 +486,7 @@ class CirclePainter extends CustomPainter {
         _paintLine,
       );
     }
+    canvas.restore();
   }
 
   @override
