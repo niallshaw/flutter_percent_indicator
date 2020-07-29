@@ -367,14 +367,17 @@ class CirclePainter extends CustomPainter {
       }
     }
 
-    // canvas.drawCircle(center, radius, _paintBackground);
+    if (endAngle < 360) {
+      canvas.drawArc(
+          Rect.fromCircle(center: center, radius: radius),
+          radians(-90.0 + endAngle),
+          radians(-((startAngle.abs() + endAngle.abs()) - progress)),
+          false,
+          _paintBackground..strokeCap = StrokeCap.round);
+    } else {
+      canvas.drawCircle(center, radius, _paintBackground);
+    }
 
-    canvas.drawArc(
-        Rect.fromCircle(center: center, radius: radius),
-        radians(-90.0 + endAngle),
-        radians(-((startAngle.abs() + endAngle.abs()) - progress)),
-        false,
-        _paintBackground..strokeCap = StrokeCap.round);
     // if (startAngle) {
     //   fixedStartAngle = 360 + startAngle;
     // }
