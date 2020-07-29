@@ -26,11 +26,12 @@ class _SampleCircularPageState extends State<SampleCircularPage> {
                 percent = Random().nextDouble();
               });
             },
-            child: CircularPercentIndicator(
+            child: new CircularPercentIndicator(
               animation: true,
               animateFromLastPercent: true,
-              reverse: true,
-              gap: 20,
+              gap: 5,
+              startAngle: -120,
+              endAngle: 120,
               radius: 300.0,
               lineWidth: 20.0,
               percent: percent,

@@ -60,6 +60,9 @@ class CircularPercentIndicator extends StatefulWidget {
   ///the angle which the circle will start the progress (in degrees, eg: 0.0, 45.0, 90.0)
   final double startAngle;
 
+  //the angle which the indicator will stop (rest will be drawn transparent)
+  final double endAngle;
+
   /// set true if you want to animate the linear from the last percent value you set
   final bool animateFromLastPercent;
 
@@ -91,6 +94,7 @@ class CircularPercentIndicator extends StatefulWidget {
       this.lineWidth = 5.0,
       this.gap = 0.0,
       this.startAngle = 0.0,
+      this.endAngle = 360.0,
       @required this.radius,
       this.fillColor = Colors.transparent,
       this.backgroundColor = const Color(0xFFB8C7CB),
@@ -119,7 +123,8 @@ class CircularPercentIndicator extends StatefulWidget {
     }
     _progressColor = progressColor ?? Colors.red;
 
-    assert(startAngle >= 0.0);
+    assert(startAngle >= 0.0 || endAngle <= 360);
+    assert(endAngle <= 360 && startAngle < endAngle);
     assert(gap >= 0.0);
     assert(curve != null);
     if (percent < 0.0 || percent > 1.0) {
@@ -212,10 +217,11 @@ class _CircularPercentIndicatorState extends State<CircularPercentIndicator>
         width: widget.radius,
         child: CustomPaint(
           painter: CirclePainter(
-              progress: _percent * 360,
+              progress: _percent * (widget.endAngle - widget.startAngle),
               progressColor: widget.progressColor,
               backgroundColor: widget.backgroundColor,
               startAngle: widget.startAngle,
+              endAngle: widget.endAngle,
               circularStrokeCap: widget.circularStrokeCap,
               radius: (widget.radius / 2) - widget.lineWidth / 2,
               gap: widget.gap,
@@ -266,6 +272,7 @@ class CirclePainter extends CustomPainter {
   final Color backgroundColor;
   final CircularStrokeCap circularStrokeCap;
   final double startAngle;
+  final double endAngle;
   final LinearGradient linearGradient;
   final Color arcBackgroundColor;
   final ArcType arcType;
@@ -281,6 +288,7 @@ class CirclePainter extends CustomPainter {
       this.progressColor,
       this.backgroundColor,
       this.startAngle = 0.0,
+      this.endAngle = 360.0,
       this.circularStrokeCap = CircularStrokeCap.round,
       this.linearGradient,
       this.reverse,
@@ -320,7 +328,6 @@ class CirclePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     canvas.saveLayer(Offset.zero & size, Paint());
     final center = Offset(size.width / 2, size.height / 2);
-    canvas.drawCircle(center, radius, _paintBackground);
 
     if (maskFilter != null) {
       _paintLine.maskFilter = maskFilter;
@@ -360,6 +367,18 @@ class CirclePainter extends CustomPainter {
       }
     }
 
+    // canvas.drawCircle(center, radius, _paintBackground);
+
+    canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius),
+        radians(-90.0 + endAngle),
+        radians(-((startAngle.abs() + endAngle.abs()) - progress)),
+        false,
+        _paintBackground..strokeCap = StrokeCap.round);
+    // if (startAngle) {
+    //   fixedStartAngle = 360 + startAngle;
+    // }
+
     if (arcBackgroundColor != null) {
       canvas.drawArc(
         Rect.fromCircle(center: center, radius: radius),
@@ -375,6 +394,8 @@ class CirclePainter extends CustomPainter {
     if (reverse) {
       final start =
           radians(360 * startAngleFixedMargin - 90.0 + fixedStartAngle);
+      print(start);
+
       final end = radians(-progress * startAngleFixedMargin);
       final startGap =
           radians(360 * startAngleFixedMargin - 90.0 + gap + fixedStartAngle);
@@ -397,8 +418,10 @@ class CirclePainter extends CustomPainter {
         //     .
         Offset offset =
             pathMetric.getTangentForOffset(pathMetric.length).position;
+        Offset offseta = pathMetric.getTangentForOffset(0).position;
         Path path = new Path();
         path.addOval(Rect.fromCircle(center: offset, radius: 15));
+        path.addOval(Rect.fromCircle(center: offseta, radius: 15));
         canvas.drawPath(
             path,
             Paint()
@@ -448,20 +471,35 @@ class CirclePainter extends CustomPainter {
       final startGap = radians(-90.0 - gap + fixedStartAngle);
       final endGap = radians((progress + gap * 2) * startAngleFixedMargin);
 
-      canvas.drawArc(
+      Path path = Path();
+      path.addArc(
           Rect.fromCircle(
             center: center,
             radius: radius,
           ),
-          startGap,
-          endGap,
-          false,
-          new Paint()
-            ..color = Colors.red
-            ..blendMode = BlendMode.clear
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = lineWidth
-            ..strokeCap = _paintLine.strokeCap);
+          start,
+          end);
+
+      PathMetrics pm = path.computeMetrics();
+
+      for (PathMetric pathMetric in pm) {
+        Path extractPath = pathMetric.extractPath(0.0, pathMetric.length);
+        // extractPath
+        //     .computeMetrics()
+        //     .
+        Offset offset =
+            pathMetric.getTangentForOffset(pathMetric.length).position;
+        Offset offseta = pathMetric.getTangentForOffset(0).position;
+        Path path = new Path();
+        path.addOval(Rect.fromCircle(center: offset, radius: 15));
+        path.addOval(Rect.fromCircle(center: offseta, radius: 15));
+        canvas.drawPath(
+            path,
+            Paint()
+              ..blendMode = BlendMode.clear
+              ..style = PaintingStyle.fill
+              ..color = Colors.black);
+      }
 
       // canvas.saveLayer(
       //     Rect.fromCircle(
