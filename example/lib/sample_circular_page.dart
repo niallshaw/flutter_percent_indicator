@@ -29,8 +29,8 @@ class _SampleCircularPageState extends State<SampleCircularPage> {
             child: new CircularPercentIndicator(
               animation: true,
               animateFromLastPercent: true,
-              gap: 5,
               startAngle: 0,
+              gapRadius: 15,
               radius: 300.0,
               lineWidth: 20.0,
               percent: percent,

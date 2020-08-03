@@ -55,7 +55,7 @@ class CircularPercentIndicator extends StatefulWidget {
   final CircularStrokeCap circularStrokeCap;
 
   //The gap to leave between the progress bar and background.
-  final double gap;
+  final double gapRadius;
 
   ///the angle which the circle will start the progress (in degrees, eg: 0.0, 45.0, 90.0)
   final double startAngle;
@@ -92,7 +92,7 @@ class CircularPercentIndicator extends StatefulWidget {
       {Key key,
       this.percent = 0.0,
       this.lineWidth = 5.0,
-      this.gap = 0.0,
+      this.gapRadius = 0.0,
       this.startAngle = 0.0,
       this.endAngle = 360.0,
       @required this.radius,
@@ -125,7 +125,7 @@ class CircularPercentIndicator extends StatefulWidget {
 
     assert(startAngle >= 0.0 || endAngle <= 360);
     assert(endAngle <= 360 && startAngle < endAngle);
-    assert(gap >= 0.0);
+    assert(gapRadius >= 0.0);
     assert(curve != null);
     if (percent < 0.0 || percent > 1.0) {
       throw Exception("Percent value must be a double between 0.0 and 1.0");
@@ -224,7 +224,7 @@ class _CircularPercentIndicatorState extends State<CircularPercentIndicator>
               endAngle: widget.endAngle,
               circularStrokeCap: widget.circularStrokeCap,
               radius: (widget.radius / 2) - widget.lineWidth / 2,
-              gap: widget.gap,
+              gapRadius: widget.gapRadius,
               lineWidth: widget.lineWidth,
               backgroundWidth: //negative values ignored, replaced with lineWidth
                   widget.backgroundWidth >= 0.0
@@ -267,7 +267,7 @@ class CirclePainter extends CustomPainter {
   final double backgroundWidth;
   final double progress;
   final double radius;
-  final double gap;
+  final double gapRadius;
   final Color progressColor;
   final Color backgroundColor;
   final CircularStrokeCap circularStrokeCap;
@@ -283,7 +283,7 @@ class CirclePainter extends CustomPainter {
       {this.lineWidth,
       this.backgroundWidth,
       this.progress,
-      this.gap,
+      this.gapRadius,
       @required this.radius,
       this.progressColor,
       this.backgroundColor,
@@ -400,37 +400,32 @@ class CirclePainter extends CustomPainter {
       print(start);
 
       final end = radians(-progress * startAngleFixedMargin);
-      final startGap =
-          radians(360 * startAngleFixedMargin - 90.0 + gap + fixedStartAngle);
-      final endGap = radians(-(progress + gap * 2) * startAngleFixedMargin);
-      Path path = Path();
-      path.addArc(
-          Rect.fromCircle(
-            center: center,
-            radius: radius,
-          ),
-          start,
-          end);
+      if (gapRadius > 0) {
+        Path path = Path();
+        path.addArc(
+            Rect.fromCircle(
+              center: center,
+              radius: radius,
+            ),
+            start,
+            end);
 
-      PathMetrics pm = path.computeMetrics();
+        PathMetrics pm = path.computeMetrics();
 
-      for (PathMetric pathMetric in pm) {
-        Path extractPath = pathMetric.extractPath(0.0, pathMetric.length);
-        // extractPath
-        //     .computeMetrics()
-        //     .
-        Offset offset =
-            pathMetric.getTangentForOffset(pathMetric.length).position;
-        Offset offseta = pathMetric.getTangentForOffset(0).position;
-        Path path = new Path();
-        path.addOval(Rect.fromCircle(center: offset, radius: 15));
-        path.addOval(Rect.fromCircle(center: offseta, radius: 15));
-        canvas.drawPath(
-            path,
-            Paint()
-              ..blendMode = BlendMode.clear
-              ..style = PaintingStyle.fill
-              ..color = Colors.black);
+        for (PathMetric pathMetric in pm) {
+          Offset offset =
+              pathMetric.getTangentForOffset(pathMetric.length).position;
+          Offset offseta = pathMetric.getTangentForOffset(0).position;
+          Path path = new Path();
+          path.addOval(Rect.fromCircle(center: offset, radius: gapRadius));
+          path.addOval(Rect.fromCircle(center: offseta, radius: gapRadius));
+          canvas.drawPath(
+              path,
+              Paint()
+                ..blendMode = BlendMode.clear
+                ..style = PaintingStyle.fill
+                ..color = Colors.black);
+        }
       }
       // path.arcTo(rect, startGap, endGap, true);
 
@@ -471,37 +466,36 @@ class CirclePainter extends CustomPainter {
     } else {
       final start = radians(-90.0 + fixedStartAngle);
       final end = radians(progress * startAngleFixedMargin);
-      final startGap = radians(-90.0 - gap + fixedStartAngle);
-      final endGap = radians((progress + gap * 2) * startAngleFixedMargin);
 
-      Path path = Path();
-      path.addArc(
-          Rect.fromCircle(
-            center: center,
-            radius: radius,
-          ),
-          start,
-          end);
+      if (gapRadius > 0) {
+        Path path = Path();
+        path.addArc(
+            Rect.fromCircle(
+              center: center,
+              radius: radius,
+            ),
+            start,
+            end);
 
-      PathMetrics pm = path.computeMetrics();
+        PathMetrics pm = path.computeMetrics();
 
-      for (PathMetric pathMetric in pm) {
-        Path extractPath = pathMetric.extractPath(0.0, pathMetric.length);
-        // extractPath
-        //     .computeMetrics()
-        //     .
-        Offset offset =
-            pathMetric.getTangentForOffset(pathMetric.length).position;
-        Offset offseta = pathMetric.getTangentForOffset(0).position;
-        Path path = new Path();
-        path.addOval(Rect.fromCircle(center: offset, radius: 15));
-        path.addOval(Rect.fromCircle(center: offseta, radius: 15));
-        canvas.drawPath(
-            path,
-            Paint()
-              ..blendMode = BlendMode.clear
-              ..style = PaintingStyle.fill
-              ..color = Colors.black);
+        for (PathMetric pathMetric in pm) {
+          // extractPath
+          //     .computeMetrics()
+          //     .
+          Offset offset =
+              pathMetric.getTangentForOffset(pathMetric.length).position;
+          Offset offseta = pathMetric.getTangentForOffset(0).position;
+          Path path = new Path();
+          path.addOval(Rect.fromCircle(center: offset, radius: gapRadius));
+          path.addOval(Rect.fromCircle(center: offseta, radius: gapRadius));
+          canvas.drawPath(
+              path,
+              Paint()
+                ..blendMode = BlendMode.clear
+                ..style = PaintingStyle.fill
+                ..color = Colors.black);
+        }
       }
 
       // canvas.saveLayer(
