@@ -397,7 +397,6 @@ class CirclePainter extends CustomPainter {
     if (reverse) {
       final start =
           radians(360 * startAngleFixedMargin - 90.0 + fixedStartAngle);
-      print(start);
 
       final end = radians(-progress * startAngleFixedMargin);
       if (gapRadius > 0) {

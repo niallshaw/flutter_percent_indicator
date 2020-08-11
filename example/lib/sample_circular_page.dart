@@ -27,6 +27,7 @@ class _SampleCircularPageState extends State<SampleCircularPage> {
               });
             },
             child: new CircularPercentIndicator(
+              reverse: true,
               animation: true,
               animateFromLastPercent: true,
               startAngle: 0,
